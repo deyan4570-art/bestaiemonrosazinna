@@ -1,8 +1,4 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     background-color: #1a1a2e;
@@ -37,32 +33,10 @@ body {
     outline: none;
 }
 
-#gameCanvas:focus {
-    border-color: #e0d040;
-}
+#gameCanvas:focus { border-color: #e0d040; }
 
-#ui-panel {
-    width: 100%;
-    margin-top: 15px;
-    background-color: #e8e0c8;
-    border: 3px solid #4a4a5a;
-    border-radius: 8px;
-    padding: 10px;
-}
+#ui-panel { width: 100%; margin-top: 15px; background-color: #e8e0c8; border: 3px solid #4a4a5a; border-radius: 8px; padding: 10px; }
 
-#dialogue-box {
-    background-color: #f8f4e8;
-    border: 2px inset #8a8a7a;
-    padding: 12px;
-    font-weight: bold;
-    color: #2a2a3a;
-    min-height: 50px;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
+#dialogue-box { background-color: #f8f4e8; border: 2px inset #8a8a7a; padding: 12px; font-weight: bold; color: #2a2a3a; min-height: 50px; margin-bottom: 8px; font-size: 13px; }
 
-#controls-hint {
-    text-align: center;
-    font-size: 11px;
-    color: #4a4a3a;
-}
+#controls-hint { text-align: center; font-size: 11px; color: #4a4a3a; }
