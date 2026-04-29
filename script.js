@@ -3,6 +3,10 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
+// Forza il focus sul canvas per ricevere input tastiera
+canvas.focus();
+canvas.addEventListener('click', () => canvas.focus());
+
 const dialogueBox = document.getElementById('dialogue-box');
 
 // ---------- TIPI E MATRICE DI EFFICACIA ----------
