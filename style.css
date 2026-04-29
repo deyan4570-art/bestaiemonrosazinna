@@ -1,0 +1,64 @@
+/* Stile globale per il corpo della pagina */
+body {
+    background-color: #1a1a2e; /* Sfondo scuro esterno */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace; /* Font retrò */
+    image-rendering: pixelated; /* Per scalare le immagini in stile pixel art */
+    image-rendering: crisp-edges;
+}
+
+/* Il contenitore che simula la console portatile */
+#game-container {
+    background-color: #d8d0b8; /* Colore beige simile al Game Boy */
+    border: 6px solid #4a4a5a;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* L'area di gioco principale (mappa, battaglie) */
+#gameCanvas {
+    border: 3px solid #2a2a3a;
+    background-color: #8bac0f; /* Il classico verde della mappa di Pokémon */
+    width: 480px;
+    height: 432px;
+    image-rendering: pixelated; /* Fondamentale per la pixel art */
+    image-rendering: crisp-edges;
+}
+
+/* Pannello UI inferiore per testi e controlli */
+#ui-panel {
+    width: 100%;
+    margin-top: 15px;
+    background-color: #e8e0c8;
+    border: 3px solid #4a4a5a;
+    border-radius: 8px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* Area per i dialoghi di gioco */
+#dialogue-box {
+    background-color: #f8f4e8;
+    border: 2px inset #8a8a7a;
+    padding: 12px;
+    font-weight: bold;
+    color: #2a2a3a;
+    min-height: 50px;
+    margin-bottom: 8px;
+}
+
+/* Suggerimenti sui controlli */
+#controls-hint {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #4a4a3a;
+}

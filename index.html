@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bestiaemon - Versione Lince</title>
+    <!-- Collegamento al foglio di stile esterno -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Contenitore principale del gioco, simula lo schermo di un Game Boy -->
+    <div id="game-container">
+        <!-- Il canvas su cui disegneremo tutto (mappa, battaglie, menu) -->
+        <canvas id="gameCanvas" width="480" height="432"></canvas>
+        <!-- Pannello inferiore per testi, dialogo e menu -->
+        <div id="ui-panel">
+            <div id="dialogue-box">Premi Invio o clicca Avvia</div>
+            <div id="controls-hint">
+                <span>←↑↓→ per muoverti</span>
+                <span>Invio/Spazio: Azione | M: Menu</span>
+            </div>
+        </div>
+    </div>
+    <!-- Carica il codice JavaScript del gioco -->
+    <script src="script.js"></script>
+</body>
+</html>
