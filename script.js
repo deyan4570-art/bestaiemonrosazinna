@@ -1,10 +1,8 @@
 // Otteniamo il contesto 2D del canvas per disegnare
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-// Disabilitiamo l'interpolazione dell'immagine per avere pixel art nitida
 ctx.imageSmoothingEnabled = false;
 
-// Riferimento all'elemento HTML per i dialoghi
 const dialogueBox = document.getElementById('dialogue-box');
 
 // ---------- TIPI E MATRICE DI EFFICACIA ----------
@@ -14,7 +12,6 @@ const TYPES = {
     ALA: 'Ala', GELO: 'Gelo'
 };
 
-// Come nei giochi Pokémon, ogni tipo ha vantaggi e debolezze
 const TYPE_EFFECTIVENESS = {
     [TYPES.FUOCO]: { strong: [TYPES.BOSCO, TYPES.GELO, TYPES.VELENO], weak: [TYPES.ACQUA, TYPES.ROCCIA] },
     [TYPES.ACQUA]: { strong: [TYPES.FUOCO, TYPES.ROCCIA], weak: [TYPES.BOSCO, TYPES.GELO] },
@@ -28,8 +25,7 @@ const TYPE_EFFECTIVENESS = {
     [TYPES.GELO]: { strong: [TYPES.ALA, TYPES.ACQUA], weak: [TYPES.FUOCO, TYPES.ROCCIA, TYPES.LUCE] }
 };
 
-// ---------- DATABASE DEI TUOI 10 BESTIAEMON ----------
-// Ogni mostro ha ID, nome, tipi, statistiche base, mosse e zona di apparizione
+// ---------- DATABASE DEI 10 BESTIAEMON ----------
 const BESTIAEMON_DATA = [
     { id: 1, name: "Lupfalena", types: [TYPES.ZANNA, TYPES.ALA], stats: [50, 60, 45, 70], moves: ["Morso d'Ombra", "Raffica Ali", "Ululato", "Sguscio"], zone: "forest" },
     { id: 2, name: "Giraffatarta", types: [TYPES.BOSCO, TYPES.ROCCIA], stats: [70, 65, 70, 30], moves: ["Frustata", "Lancioroccia", "Ruggito", "Fotosintesi"], zone: "plains" },
@@ -43,7 +39,6 @@ const BESTIAEMON_DATA = [
     { id: 10, name: "Pescecane", types: [TYPES.ACQUA, TYPES.ZANNA], stats: [60, 75, 55, 55], moves: ["Morso", "Idropulsar", "Acquagetto", "Mordikken"], zone: "water" }
 ];
 
-// Definizione delle mosse (per calcolo danni)
 const MOVES = {
     "Morso d'Ombra": { type: TYPES.OMBRA, power: 35 },
     "Raffica Ali": { type: TYPES.ALA, power: 35 },
@@ -57,68 +52,73 @@ const MOVES = {
     "Fiammata": { type: TYPES.FUOCO, power: 40 },
     "Raggio Luce": { type: TYPES.LUCE, power: 40 },
     "Idropulsar": { type: TYPES.ACQUA, power: 40 },
-    "Palla Ombra": { type: TYPES.OMBRA, power: 40 }
+    "Palla Ombra": { type: TYPES.OMBRA, power: 40 },
+    "Calpestio": { type: TYPES.ROCCIA, power: 30 },
+    "Sprint": { type: TYPES.ALA, power: 20 },
+    "Acquagetto": { type: TYPES.ACQUA, power: 35 },
+    "Mordikken": { type: TYPES.ZANNA, power: 35 },
+    "Spina": { type: TYPES.BOSCO, power: 30 },
+    "Ululato": { type: TYPES.OMBRA, power: 0 },
+    "Sguscio": { type: TYPES.ALA, power: 0 },
+    "Ruggito": { type: TYPES.ZANNA, power: 0 },
+    "Fotosintesi": { type: TYPES.BOSCO, power: 0 },
+    "Inchiostro": { type: TYPES.ACQUA, power: 0 },
+    "Avvitarsi": { type: TYPES.ALA, power: 0 },
+    "Agilità": { type: TYPES.ALA, power: 0 },
+    "Mimetismo": { type: TYPES.BOSCO, power: 0 },
+    "Furia": { type: TYPES.ZANNA, power: 0 },
+    "Sgranocchio": { type: TYPES.ZANNA, power: 0 },
+    "Leccata": { type: TYPES.OMBRA, power: 0 }
 };
 
 // ---------- STATO GLOBALE DEL GIOCO ----------
 const gameState = {
-    scene: 'title', // 'title', 'world', 'battle', 'team', 'talk'
+    scene: 'title',
     player: {
-        x: 14, y: 18, // Posizione di partenza sulla mappa
+        x: 14, y: 18,
         direction: 'down',
-        // Squadra di Bestiaemon. Inizialmente vuota
         team: [],
-        // I mostri visti e catturati (per ID)
         seen: new Set(),
         caught: new Set(),
-        // Zaino
         inventory: { pokeballs: 10 }
     },
-    wildMonster: null, // Il mostro selvatico incontrato
-    battle: null,      // Stato della battaglia in corso
-    dialogueQueue: [], // Coda di messaggi per la UI
-    currentMenu: null  // Quale menu è attivo
+    wildMonster: null,
+    battle: null,
+    dialogueQueue: [],
+    currentMenu: null
 };
 
-// Dimensione dei tile della mappa in pixel
 const TILE_SIZE = 16;
-// Dimensioni della mappa in tile
-const MAP_WIDTH = 30;  // 30 * 16 = 480 pixel (larghezza canvas)
-const MAP_HEIGHT = 27; // 27 * 16 = 432 pixel (altezza canvas)
-// ---------- MAPPA DI GIOCO (30x27) ----------
-// 0 = erba normale, 1 = erba alta (incontri), 2 = albero (blocco), 3 = acqua (blocco), 4 = montagna (blocco), 5 = sentiero/casa
+const MAP_WIDTH = 30;
+const MAP_HEIGHT = 27;
+let currentMap = [];
+
+// ---------- GENERAZIONE MAPPA ----------
 function generateMap() {
     const map = [];
     for (let y = 0; y < MAP_HEIGHT; y++) {
         map[y] = [];
         for (let x = 0; x < MAP_WIDTH; x++) {
-            // Bordo alberi tutto intorno
             if (y === 0 || y === MAP_HEIGHT-1 || x === 0 || x === MAP_WIDTH-1) {
                 map[y][x] = 2;
             }
-            // Area del villaggio in basso al centro
             else if (y > 20 && x > 10 && x < 19) {
-                if (x === 11 || x === 18 || y === 21 || y === 25) map[y][x] = 2; // Mura
-                else if ((x === 14 || x === 15) && y === 25) map[y][x] = 5; // Porta
-                else map[y][x] = 5; // Interno villaggio
+                if (x === 11 || x === 18 || y === 21 || y === 25) map[y][x] = 2;
+                else if ((x === 14 || x === 15) && y === 25) map[y][x] = 5;
+                else map[y][x] = 5;
             }
-            // Laghetto a sinistra
             else if (y > 10 && y < 15 && x > 2 && x < 7) {
                 map[y][x] = 3;
             }
-            // Zona montagnosa in alto a destra
             else if (y > 5 && y < 10 && x > 20 && x < 27) {
                 map[y][x] = 4;
             }
-            // Piccolo bosco a sinistra
             else if (y > 16 && y < 21 && x > 2 && x < 8) {
                 map[y][x] = 2;
             }
-            // Erba alta sparsa (zone di incontri)
             else if (Math.random() < 0.12 && x > 8 && x < 22) {
                 map[y][x] = 1;
             }
-            // Erba normale
             else {
                 map[y][x] = 0;
             }
@@ -127,22 +127,19 @@ function generateMap() {
     return map;
 }
 
-// Inizializziamo la mappa
-let currentMap = generateMap();
-
-// ---------- DISEGNO DELLA MAPPA ----------
+// ---------- DISEGNO MAPPA ----------
 function drawMap() {
     for (let row = 0; row < MAP_HEIGHT; row++) {
         for (let col = 0; col < MAP_WIDTH; col++) {
             const tile = currentMap[row][col];
             let color;
             switch (tile) {
-                case 0: color = '#8bac0f'; break; // Erba normale
-                case 1: color = '#6b8c0f'; break; // Erba alta (più scura)
-                case 2: color = '#5a7247'; break; // Albero
-                case 3: color = '#4f7aa6'; break; // Acqua
-                case 4: color = '#8b7a6b'; break; // Montagna
-                case 5: color = '#c4a882'; break; // Sentiero/Casa
+                case 0: color = '#8bac0f'; break;
+                case 1: color = '#6b8c0f'; break;
+                case 2: color = '#5a7247'; break;
+                case 3: color = '#4f7aa6'; break;
+                case 4: color = '#8b7a6b'; break;
+                case 5: color = '#c4a882'; break;
                 default: color = '#8bac0f';
             }
             ctx.fillStyle = color;
@@ -150,21 +147,20 @@ function drawMap() {
         }
     }
     
-    // Disegna il personaggio giocante
     const playerX = gameState.player.x * TILE_SIZE;
     const playerY = gameState.player.y * TILE_SIZE;
-    ctx.fillStyle = '#e03a4e'; // Rosso per il cappello/parte superiore
+    ctx.fillStyle = '#e03a4e';
     ctx.fillRect(playerX + 4, playerY, 8, 8);
-    ctx.fillStyle = '#f8e3c4'; // Pelle
+    ctx.fillStyle = '#f8e3c4';
     ctx.fillRect(playerX + 4, playerY + 8, 8, 8);
-    ctx.fillStyle = '#3a2a1a'; // Capelli
+    ctx.fillStyle = '#3a2a1a';
     ctx.fillRect(playerX + 5, playerY, 6, 2);
 }
+
 // ---------- MOVIMENTO E COLLISIONI ----------
 function canMoveTo(x, y) {
     if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return false;
     const tile = currentMap[y][x];
-    // Non si può camminare su alberi (2), acqua (3) o montagne (4)
     return tile !== 2 && tile !== 3 && tile !== 4;
 }
 
@@ -176,14 +172,12 @@ function movePlayer(dx, dy, direction) {
         gameState.player.x = newX;
         gameState.player.y = newY;
         gameState.player.direction = direction;
-        
-        // Controlla incontri casuali dopo ogni movimento
         checkForEncounter();
-        drawGameScene(); // Ridisegna la scena
+        drawGameScene();
     }
 }
 
-// ---------- SISTEMA DI INCONTRI CASUALI ----------
+// ---------- INCONTRI CASUALI ----------
 function getWildMonster() {
     const zoneMap = { 1: 'plains', 2: 'forest', 3: 'water', 4: 'mountain' };
     const currentTile = currentMap[gameState.player.y][gameState.player.x];
@@ -192,7 +186,7 @@ function getWildMonster() {
     if (candidates.length === 0) return null;
     
     const base = candidates[Math.floor(Math.random() * candidates.length)];
-    const level = Math.floor(Math.random() * 5) + 3; // Livello tra 3 e 7
+    const level = Math.floor(Math.random() * 5) + 3;
     
     return {
         ...base,
@@ -202,12 +196,11 @@ function getWildMonster() {
         attack: base.stats[1] + level,
         defense: base.stats[2] + level,
         speed: base.stats[3] + level,
-        moves: base.moves.slice(0, 3) // Solo 3 mosse per i selvatici
+        moves: base.moves.slice(0, 3)
     };
 }
 
 function checkForEncounter() {
-    // Incontri solo sull'erba alta (tile 1) con probabilità del 15%
     const tile = currentMap[gameState.player.y][gameState.player.x];
     if (tile === 1 && Math.random() < 0.15 && gameState.scene === 'world') {
         const wild = getWildMonster();
@@ -216,7 +209,7 @@ function checkForEncounter() {
             gameState.scene = 'battle';
             gameState.dialogueQueue = [`Appare un ${wild.name} selvatico! (Lv.${wild.level})`];
             gameState.battle = {
-                playerActiveIdx: 0, // Indice del mostro attivo nella squadra
+                playerActiveIdx: 0,
                 turn: 'player'
             };
             updateDialogue();
@@ -224,12 +217,12 @@ function checkForEncounter() {
         }
     }
 }
-// ---------- GESTIONE BATTAGLIA ----------
+
+// ---------- SISTEMA BATTAGLIA ----------
 function calculateBattleDamage(attacker, defender, moveName) {
     const move = MOVES[moveName] || { type: TYPES.ZANNA, power: 20 };
     let effectiveness = 1;
     
-    // Calcolo efficacia tipi
     const moveType = move.type;
     if (TYPE_EFFECTIVENESS[moveType]) {
         for (const defType of defender.types) {
@@ -266,8 +259,9 @@ function playerAttack(moveName) {
         return;
     }
     
-    // Turno del nemico
     gameState.battle.turn = 'enemy';
+    updateDialogue();
+    drawGameScene();
     setTimeout(enemyTurn, 800);
 }
 
@@ -279,7 +273,6 @@ function enemyTurn() {
     
     if (!playerMon || !wildMon) return;
     
-    // Il nemico sceglie una mossa a caso
     const randomMove = wildMon.moves[Math.floor(Math.random() * wildMon.moves.length)];
     const damage = calculateBattleDamage(wildMon, playerMon, randomMove);
     playerMon.currentHp -= damage;
@@ -288,9 +281,23 @@ function enemyTurn() {
     if (playerMon.currentHp <= 0) {
         playerMon.currentHp = 0;
         gameState.dialogueQueue[0] = `${playerMon.name} è esausto!`;
-        // Se tutta la squadra è esausta, si torna al centro Pokémon (per ora, solo game over semplice)
         if (gameState.player.team.every(m => m.currentHp <= 0)) {
-            endBattle(false);
+            gameState.dialogueQueue[0] += ' Tutta la squadra è esausta!';
+            setTimeout(() => {
+                gameState.player.team.forEach(m => {
+                    m.currentHp = m.maxHp;
+                });
+                gameState.scene = 'world';
+                gameState.battle = null;
+                gameState.wildMonster = null;
+                gameState.dialogueQueue[0] = 'Sei tornato al Centro Bestiaemon. I tuoi mostri sono stati curati.';
+                updateDialogue();
+                drawGameScene();
+                saveGame();
+            }, 1500);
+            updateDialogue();
+            drawGameScene();
+            return;
         }
     }
     
@@ -303,6 +310,7 @@ function tryCatch() {
     if (!gameState.battle || gameState.battle.turn !== 'player') return;
     if (gameState.player.inventory.pokeballs <= 0) {
         gameState.dialogueQueue[0] = "Non hai sfere di cattura!";
+        updateDialogue();
         return;
     }
     
@@ -322,18 +330,17 @@ function tryCatch() {
     } else {
         gameState.dialogueQueue[0] = "Oh no! Si è liberato!";
         gameState.battle.turn = 'enemy';
+        updateDialogue();
+        drawGameScene();
         setTimeout(enemyTurn, 800);
     }
-    updateDialogue();
-    drawGameScene();
 }
 
 function endBattle(victory) {
-    if (victory && gameState.battle) {
+    if (victory && gameState.battle && gameState.player.team[gameState.battle.playerActiveIdx]) {
         const playerMon = gameState.player.team[gameState.battle.playerActiveIdx];
         if (playerMon && gameState.wildMonster) {
             playerMon.exp += gameState.wildMonster.level * 20;
-            // Esempio semplificato di level up
             if (playerMon.exp >= playerMon.level * 30) {
                 playerMon.level++;
                 playerMon.maxHp += 3;
@@ -353,7 +360,8 @@ function endBattle(victory) {
     drawGameScene();
     saveGame();
 }
-// ---------- AGGIORNAMENTO DIALOGO ----------
+
+// ---------- DIALOGHI ----------
 function updateDialogue() {
     if (gameState.dialogueQueue.length > 0) {
         dialogueBox.textContent = gameState.dialogueQueue[0];
@@ -362,7 +370,7 @@ function updateDialogue() {
     }
 }
 
-// ---------- DISEGNO DELLE SCENE ----------
+// ---------- DISEGNO SCENE ----------
 function drawTitleScene() {
     ctx.fillStyle = '#1e1e2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -374,46 +382,21 @@ function drawTitleScene() {
     ctx.fillText('M per caricare partita', 135, 240);
 }
 
-function drawBattleScene() {
-    ctx.fillStyle = '#2a2a3a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (!gameState.wildMonster) return;
-    
-    // Disegna il mostro selvatico (a destra)
-    ctx.fillStyle = getTypeColor(gameState.wildMonster.types[0]);
-    ctx.fillRect(320, 80, 80, 80);
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px "Courier New"';
-    ctx.fillText(gameState.wildMonster.name + ' Lv.' + gameState.wildMonster.level, 310, 180);
-    // Barra HP selvatico
-    drawHpBar(320, 190, gameState.wildMonster.currentHp, gameState.wildMonster.maxHp);
-    
-    // Disegna il mostro del giocatore (a sinistra)
-    const playerMon = gameState.player.team[gameState.battle?.playerActiveIdx || 0];
-    if (playerMon) {
-        ctx.fillStyle = getTypeColor(playerMon.types[0]);
-        ctx.fillRect(60, 260, 80, 80);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(playerMon.name + ' Lv.' + playerMon.level, 50, 360);
-        drawHpBar(50, 370, playerMon.currentHp, playerMon.maxHp);
-    }
-    
-    // Opzioni di battaglia (testuali)
-    ctx.fillStyle = '#e8e0c8';
-    ctx.fillRect(20, 390, 440, 30);
-    ctx.fillStyle = '#000';
-    ctx.font = '12px "Courier New"';
-    ctx.fillText('A: Attacco | C: Cattura | F: Fuga', 100, 410);
-}
-
 function drawHpBar(x, y, current, max) {
     const width = 100;
-    const percent = current / max;
+    const height = 8;
+    const percent = Math.max(0, current / max);
+    
     ctx.fillStyle = '#444';
-    ctx.fillRect(x, y, width, 8);
-    const hpColor = percent > 0.5 ? '#4cd964' : percent > 0.2 ? '#ffcc00' : '#ff3b30';
+    ctx.fillRect(x, y, width, height);
+    
+    let hpColor;
+    if (percent > 0.5) hpColor = '#4cd964';
+    else if (percent > 0.2) hpColor = '#ffcc00';
+    else hpColor = '#ff3b30';
+    
     ctx.fillStyle = hpColor;
-    ctx.fillRect(x, y, width * percent, 8);
+    ctx.fillRect(x, y, width * percent, height);
 }
 
 function getTypeColor(type) {
@@ -425,6 +408,34 @@ function getTypeColor(type) {
     return colors[type] || '#888';
 }
 
+function drawBattleScene() {
+    ctx.fillStyle = '#2a2a3a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!gameState.wildMonster) return;
+    
+    ctx.fillStyle = getTypeColor(gameState.wildMonster.types[0]);
+    ctx.fillRect(320, 80, 80, 80);
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px "Courier New"';
+    ctx.fillText(gameState.wildMonster.name + ' Lv.' + gameState.wildMonster.level, 310, 180);
+    drawHpBar(320, 190, gameState.wildMonster.currentHp, gameState.wildMonster.maxHp);
+    
+    const playerMon = gameState.player.team[gameState.battle?.playerActiveIdx || 0];
+    if (playerMon) {
+        ctx.fillStyle = getTypeColor(playerMon.types[0]);
+        ctx.fillRect(60, 260, 80, 80);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(playerMon.name + ' Lv.' + playerMon.level, 50, 360);
+        drawHpBar(50, 370, playerMon.currentHp, playerMon.maxHp);
+    }
+    
+    ctx.fillStyle = '#e8e0c8';
+    ctx.fillRect(20, 390, 440, 30);
+    ctx.fillStyle = '#000';
+    ctx.font = '12px "Courier New"';
+    ctx.fillText('A: Attacco | C: Cattura | F: Fuga', 100, 410);
+}
+
 function drawGameScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (gameState.scene === 'title') {
@@ -433,17 +444,156 @@ function drawGameScene() {
         drawMap();
     } else if (gameState.scene === 'battle') {
         drawBattleScene();
+    } else if (gameState.scene === 'talk') {
+        ctx.fillStyle = '#1e1e2a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#f7e3b2';
+        ctx.font = '16px "Courier New"';
+        ctx.fillText('Scegli il tuo starter:', 140, 180);
+        ctx.fillText('Z - Zebrafalla (Fuoco/Luce)', 120, 220);
+        ctx.fillText('P - Pescecane (Acqua/Zanna)', 120, 250);
+        ctx.fillText('C - Crocovolo (Bosco/Roccia)', 120, 280);
     }
     updateDialogue();
 }
-// ---------- SCELTA DELLO STARTER ----------
+
+// ---------- STARTER, SALVATAGGIO ----------
 function chooseStarter(starterId) {
-    const starter = BESTIAEMON_DATA.find(m => m.id === starterId);
-    if (starter) {
-        const lv5 = {
-            ...starter,
-            level: 5,
-            currentHp: starter.stats[0] + 10,
-            maxHp: starter.stats[0] + 10,
-            attack: starter.stats[1] + 5,
-            defense: starter.stats[2] +
+    const base = BESTIAEMON_DATA.find(m => m.id === starterId);
+    if (!base) return;
+    const starter = {
+        ...base,
+        level: 5,
+        currentHp: base.stats[0] + 10,
+        maxHp: base.stats[0] + 10,
+        attack: base.stats[1] + 5,
+        defense: base.stats[2] + 5,
+        speed: base.stats[3] + 5,
+        exp: 0,
+        moves: base.moves.slice(0, 4)
+    };
+    gameState.player.team = [starter];
+    gameState.player.seen.add(starter.id);
+    gameState.player.caught.add(starter.id);
+    gameState.scene = 'world';
+    gameState.dialogueQueue = [`Hai scelto ${starter.name}! Esplora il mondo!`];
+    currentMap = generateMap();
+    updateDialogue();
+    drawGameScene();
+    saveGame();
+}
+
+function showStarterSelection() {
+    gameState.scene = 'talk';
+    gameState.dialogueQueue = [
+        "Professor Larice: Benvenuto! Scegli il tuo primo Bestiaemon!",
+        "Z - Zebrafalla | P - Pescecane | C - Crocovolo"
+    ];
+    updateDialogue();
+    drawGameScene();
+}
+
+function saveGame() {
+    const saveData = {
+        player: {
+            x: gameState.player.x,
+            y: gameState.player.y,
+            direction: gameState.player.direction,
+            team: gameState.player.team,
+            inventory: gameState.player.inventory
+        },
+        seen: Array.from(gameState.player.seen),
+        caught: Array.from(gameState.player.caught)
+    };
+    localStorage.setItem('bestiaemon_save', JSON.stringify(saveData));
+}
+
+function loadGame() {
+    const raw = localStorage.getItem('bestiaemon_save');
+    if (!raw) return false;
+    try {
+        const data = JSON.parse(raw);
+        gameState.player.x = data.player.x;
+        gameState.player.y = data.player.y;
+        gameState.player.direction = data.player.direction;
+        gameState.player.team = data.player.team;
+        gameState.player.inventory = data.player.inventory;
+        gameState.player.seen = new Set(data.seen);
+        gameState.player.caught = new Set(data.caught);
+        gameState.scene = 'world';
+        currentMap = generateMap();
+        gameState.dialogueQueue = ['Partita caricata!'];
+        updateDialogue();
+        drawGameScene();
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
+
+// ---------- INPUT TASTIERA ----------
+document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    e.preventDefault();
+    
+    if (gameState.scene === 'title') {
+        if (key === 'enter') {
+            if (loadGame()) return;
+            showStarterSelection();
+        }
+        return;
+    }
+    
+    if (gameState.scene === 'talk') {
+        if (key === 'z') chooseStarter(9);
+        if (key === 'p') chooseStarter(10);
+        if (key === 'c') chooseStarter(8);
+        return;
+    }
+    
+    if (gameState.scene === 'world') {
+        switch(key) {
+            case 'arrowup': movePlayer(0, -1, 'up'); break;
+            case 'arrowdown': movePlayer(0, 1, 'down'); break;
+            case 'arrowleft': movePlayer(-1, 0, 'left'); break;
+            case 'arrowright': movePlayer(1, 0, 'right'); break;
+            case 'enter':
+            case ' ':
+                if (gameState.dialogueQueue.length > 0) {
+                    gameState.dialogueQueue.shift();
+                    updateDialogue();
+                }
+                break;
+            case 'm':
+                const teamInfo = gameState.player.team.map(m => 
+                    `${m.name} Lv.${m.level} HP:${m.currentHp}/${m.maxHp}`
+                ).join(', ');
+                gameState.dialogueQueue = [`Squadra: ${teamInfo || 'Nessuno'} | Sfere: ${gameState.player.inventory.pokeballs}`];
+                updateDialogue();
+                break;
+        }
+        return;
+    }
+    
+    if (gameState.scene === 'battle') {
+        if (key === 'a' && gameState.battle?.turn === 'player') {
+            const playerMon = gameState.player.team[gameState.battle.playerActiveIdx];
+            if (playerMon && playerMon.moves.length > 0) {
+                playerAttack(playerMon.moves[0]);
+            }
+        }
+        if (key === 'c' && gameState.battle?.turn === 'player') {
+            tryCatch();
+        }
+        if (key === 'f') {
+            gameState.dialogueQueue[0] = "Sei fuggito!";
+            endBattle(false);
+        }
+        return;
+    }
+});
+
+// ---------- AVVIO ----------
+currentMap = generateMap();
+drawTitleScene();
+updateDialogue();
